@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Splitwise Debt Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #cfd9df, #e2ebf0);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+      transition: background-color 0.3s ease;
+    }
+
+    .dark-mode {
+      background-color: #121212;
+    }
+
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 600px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .dark-mode .container {
+      background: #1e1e1e;
+      color: #f0f0f0;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #333;
+    }
+
+    .dark-mode h2 {
+      color: #fff;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+
+    .dark-mode label {
+      color: #f0f0f0;
+    }
+
+    input[type="number"],
+    input[type="text"],
+    button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      color: #000;
+    }
+
+    .dark-mode input,
+    .dark-mode button {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+    }
+
+    .people-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .person-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .person-row input[type="text"] {
+      flex: 1;
+    }
+
+    .person-row input[type="number"] {
+      width: 100px;
+    }
+
+    .output {
+      background: #f9f9f9;
+      margin-top: 25px;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      color: #333;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .dark-mode .output {
+      background: #2a2a2a;
+      color: #fff;
+      border-color: #444;
+    }
+
+    .highlight {
+      font-weight: bold;
+      color: #e53935;
+    }
+
+    hr {
+      margin: 15px 0;
+      border: none;
+      border-top: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      margin-top: 15px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #toggleDarkMode {
+      background-color: #333;
+      color: #fff;
+      margin-bottom: 15px;
+    }
+
+    .dark-mode #toggleDarkMode {
+      background-color: #bbb;
+      color: #111;
+    }
+
+    @media (max-width: 500px) {
+      .person-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .person-row input[type="number"] {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <button id="toggleDarkMode" onclick="toggleDark()">Toggle Dark Mode</button>
+    <h2>Splitwise - Debt Calculator</h2>
+
+    <label>Total Expense (₹):</label>
+    <input type="number" id="totalAmount" placeholder="Enter total amount" min="1" />
+
+    <label>Number of People:</label>
+    <input type="number" id="peopleCount" placeholder="e.g., 3" min="2" />
+
+    <button onclick="generateInputs()">Add People</button>
+
+    <div id="peopleInputs" class="people-list"></div>
+
+    <button onclick="calculateSplit()">Calculate Split</button>
+    <button onclick="location.reload()">Reset</button>
+
+    <div id="result" class="output"></div>
+  </div>
+
+  <script>
+    function toggleDark() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function generateInputs() {
+      const count = parseInt(document.getElementById("peopleCount").value);
+      const container = document.getElementById("peopleInputs");
+      container.innerHTML = "";
+
+      if (isNaN(count) || count < 2) {
+        alert("Please enter at least 2 people.");
+        return;
+      }
+
+      for (let i = 0; i < count; i++) {
+        const div = document.createElement("div");
+        div.className = "person-row";
+        div.innerHTML = `
+          <input type="text" placeholder="Person ${i + 1} Name" id="name${i}" required />
+          <input type="number" placeholder="Paid ₹" id="paid${i}" min="0" />
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    function calculateSplit() {
+      const total = parseFloat(document.getElementById("totalAmount").value);
+      const count = parseInt(document.getElementById("peopleCount").value);
+      const names = [];
+      const paid = [];
+
+      if (isNaN(total) || total <= 0 || isNaN(count) || count < 2) {
+        alert("Please enter valid values.");
+        return;
+      }
+
+      let sumPaid = 0;
+      for (let i = 0; i < count; i++) {
+        const name = document.getElementById(`name${i}`).value.trim();
+        const paidAmt = parseFloat(document.getElementById(`paid${i}`).value);
+
+        if (!name || isNaN(paidAmt) || paidAmt < 0) {
+          alert("Fill all names and valid paid amounts.");
+          return;
+        }
+
+        names.push(name);
+        paid.push(paidAmt);
+        sumPaid += paidAmt;
+      }
+
+      if (Math.abs(sumPaid - total) > 0.01) {
+        alert(`Total paid (₹${sumPaid}) doesn't match the total expense (₹${total}).`);
+        return;
+      }
+
+      const perPerson = total / count;
+      const balances = paid.map(p => p - perPerson);
+
+      // Debt simplification using greedy algorithm
+      const transactions = [];
+      const creditors = [];
+      const debtors = [];
+
+      for (let i = 0; i < count; i++) {
+        if (balances[i] > 0.01) creditors.push({ name: names[i], amt: balances[i] });
+        else if (balances[i] < -0.01) debtors.push({ name: names[i], amt: -balances[i] });
+      }
+
+      let i = 0, j = 0;
+      while (i < debtors.length && j < creditors.length) {
+        const min = Math.min(debtors[i].amt, creditors[j].amt);
+        transactions.push(`${debtors[i].name} pays ${creditors[j].name} ₹${min.toFixed(2)}`);
+        debtors[i].amt -= min;
+        creditors[j].amt -= min;
+        if (debtors[i].amt < 0.01) i++;
+        if (creditors[j].amt < 0.01) j++;
+      }
+
+      let resultHTML = `
+        <p><strong>Total Expense:</strong> ₹${total.toFixed(2)}</p>
+        <p><strong>Each person owes:</strong> ₹${perPerson.toFixed(2)}</p>
+        <hr>
+      `;
+
+      transactions.forEach(t => {
+        resultHTML += `<p class="highlight">${t}</p>`;
+      });
+
+      document.getElementById("result").innerHTML = resultHTML;
+    }
+  </script>
+</body>
+
+</html>
